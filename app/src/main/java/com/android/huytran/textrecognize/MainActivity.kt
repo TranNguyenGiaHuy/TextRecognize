@@ -1,24 +1,24 @@
 package com.android.huytran.textrecognize
 
-import android.support.v7.app.AppCompatActivity
+import android.app.Activity
 import android.os.Bundle
 import com.android.huytran.textrecognize.fragment.CameraFragment
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val cameraFragment = CameraFragment()
-        supportFragmentManager
+        fragmentManager
                 .beginTransaction()
                 .replace(R.id.main_view, cameraFragment)
                 .commit()
     }
 
     override fun onBackPressed() {
-        if (supportFragmentManager.backStackEntryCount > 0) {
-            supportFragmentManager.popBackStack()
+        if (fragmentManager.backStackEntryCount > 0) {
+            fragmentManager.popBackStack()
         } else {
             super.onBackPressed()
         }

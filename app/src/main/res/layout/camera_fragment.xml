@@ -1,18 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:orientation="vertical" android:layout_width="match_parent"
+                android:layout_height="match_parent">
 
     <com.android.huytran.textrecognize.processor.CameraSourcePreview
-        android:id="@+id/cameraPreview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+            android:id="@+id/cameraPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
         <com.android.huytran.textrecognize.processor.GraphicOverlay
-            android:id="@+id/cameraGraphicOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+                android:id="@+id/cameraGraphicOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
 
     </com.android.huytran.textrecognize.processor.CameraSourcePreview>
 
-</LinearLayout>
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="bottom">
+
+        <Button android:id="@+id/captureBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Take Image"/>
+
+    </LinearLayout>
+
+</RelativeLayout>

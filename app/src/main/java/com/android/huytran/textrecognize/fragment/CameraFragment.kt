@@ -1,11 +1,16 @@
 package com.android.huytran.textrecognize.fragment
 
 import android.Manifest
+import android.app.Fragment
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.os.Bundle
-import android.support.v4.app.ActivityCompat
-import android.support.v4.app.Fragment
-import android.view.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
 import com.android.huytran.textrecognize.R
 import com.android.huytran.textrecognize.processor.CameraSourcePreview
 import com.android.huytran.textrecognize.processor.GraphicOverlay
@@ -13,7 +18,11 @@ import com.android.huytran.textrecognize.processor.OcrDetectorProcessor
 import com.android.huytran.textrecognize.processor.OcrGraphic
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.text.TextRecognizer
+import com.google.firebase.ml.vision.FirebaseVision
+import com.google.firebase.ml.vision.cloud.FirebaseVisionCloudDetectorOptions
+import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import java.io.IOException
+
 
 class CameraFragment : Fragment() {
 
@@ -22,15 +31,14 @@ class CameraFragment : Fragment() {
     private var cameraSource: CameraSource? = null
     private lateinit var cameraSourcePreview: CameraSourcePreview
     private lateinit var graphicOverlay: GraphicOverlay<OcrGraphic>
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
+    private lateinit var captureButton: Button
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.camera_fragment, container, false)
         cameraSourcePreview = view.findViewById(R.id.cameraPreview)
         graphicOverlay = view.findViewById(R.id.cameraGraphicOverlay)
+        captureButton = view.findViewById(R.id.captureBtn)
+        captureButton.setOnClickListener { captureImage() }
 
         createCameraSource()
 
@@ -44,7 +52,7 @@ class CameraFragment : Fragment() {
         }
         val grantResult = grantResults.firstOrNull()
         if (grantResult != null && grantResult == PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.checkSelfPermission(context!!, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            if (context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 return
             }
             createCameraSource()
@@ -82,6 +90,43 @@ class CameraFragment : Fragment() {
         }
     }
 
+    private fun captureImage() {
+        cameraSource?.takePicture(null, { bytes ->
+            val textList = arrayListOf<String>()
+            val bitmap = rotateImage(
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size),
+                    90f
+            )
+            val image = FirebaseVisionImage.fromBitmap(
+                    bitmap
+            )
+            val options = FirebaseVisionCloudDetectorOptions.Builder()
+                    .setModelType(FirebaseVisionCloudDetectorOptions.LATEST_MODEL)
+                    .setMaxResults(15)
+                    .build()
+            FirebaseVision.getInstance()
+                    .onDeviceTextRecognizer
+                    .processImage(image)
+                    .addOnSuccessListener { firebaseVisionText ->
+                        println(firebaseVisionText.text)
+                        textList.addAll(
+                                firebaseVisionText.textBlocks.map { textBlock -> textBlock.text }
+                        )
+
+                        val imagePreviewFragment = ImagePreviewFragment()
+                        imagePreviewFragment.bitmap = bitmap
+                        imagePreviewFragment.textList = textList
+                        fragmentManager
+                                .beginTransaction()
+                                .replace(R.id.main_view, imagePreviewFragment)
+                                .commit()
+                    }
+                    .addOnFailureListener {
+                        it.printStackTrace()
+                    }
+        })
+    }
+
     override fun onResume() {
         super.onResume()
         startCameraSource()
@@ -95,6 +140,13 @@ class CameraFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         cameraSourcePreview.release()
+    }
+
+    private fun rotateImage(source: Bitmap, angle: Float): Bitmap {
+        val matrix = Matrix()
+        matrix.postRotate(angle)
+        return Bitmap.createBitmap(source, 0, 0, source.width, source.height,
+                matrix, true)
     }
 
 }
