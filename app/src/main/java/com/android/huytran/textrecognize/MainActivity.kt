@@ -9,11 +9,13 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val cameraFragment = CameraFragment()
-        fragmentManager
-                .beginTransaction()
-                .replace(R.id.main_view, cameraFragment)
-                .commit()
+        if (savedInstanceState == null) {
+            val cameraFragment = CameraFragment()
+            fragmentManager
+                    .beginTransaction()
+                    .replace(R.id.main_view, cameraFragment)
+                    .commit()
+        }
     }
 
     override fun onBackPressed() {

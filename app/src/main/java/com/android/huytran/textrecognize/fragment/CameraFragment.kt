@@ -12,10 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import com.android.huytran.textrecognize.R
-import com.android.huytran.textrecognize.processor.CameraSourcePreview
-import com.android.huytran.textrecognize.processor.GraphicOverlay
-import com.android.huytran.textrecognize.processor.OcrDetectorProcessor
-import com.android.huytran.textrecognize.processor.OcrGraphic
+import com.android.huytran.textrecognize.processor.*
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.text.TextRecognizer
 import com.google.firebase.ml.vision.FirebaseVision
@@ -40,7 +37,7 @@ class CameraFragment : Fragment() {
         captureButton = view.findViewById(R.id.captureBtn)
         captureButton.setOnClickListener { captureImage() }
 
-        createCameraSource()
+        checkCameraPermissionAndStartIfNeeded()
 
         return view
     }
@@ -69,7 +66,7 @@ class CameraFragment : Fragment() {
                     .setFacing(CameraSource.CAMERA_FACING_BACK)
                     .setAutoFocusEnabled(true)
                     .setRequestedPreviewSize(1280, 1024)
-                    .setRequestedFps(2F)
+                    .setRequestedFps(60F)
                     .build()
         }
     }
@@ -92,18 +89,23 @@ class CameraFragment : Fragment() {
 
     private fun captureImage() {
         cameraSource?.takePicture(null, { bytes ->
+
             val textList = arrayListOf<String>()
-            val bitmap = rotateImage(
-                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size),
-                    90f
-            )
+            var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            when (Exif.getOrientation(bytes)) {
+                0 -> bitmap = rotateImage(bitmap, 0f)
+                90 -> bitmap = rotateImage(bitmap, 90f)
+                180 -> bitmap = rotateImage(bitmap, 180f)
+                270 -> bitmap = rotateImage(bitmap, 270f)
+            }
+
             val image = FirebaseVisionImage.fromBitmap(
                     bitmap
             )
-            val options = FirebaseVisionCloudDetectorOptions.Builder()
-                    .setModelType(FirebaseVisionCloudDetectorOptions.LATEST_MODEL)
-                    .setMaxResults(15)
-                    .build()
+//            val options = FirebaseVisionCloudDetectorOptions.Builder()
+//                    .setModelType(FirebaseVisionCloudDetectorOptions.LATEST_MODEL)
+//                    .setMaxResults(15)
+//                    .build()
             FirebaseVision.getInstance()
                     .onDeviceTextRecognizer
                     .processImage(image)
@@ -119,6 +121,7 @@ class CameraFragment : Fragment() {
                         fragmentManager
                                 .beginTransaction()
                                 .replace(R.id.main_view, imagePreviewFragment)
+                                .addToBackStack(this.javaClass.simpleName)
                                 .commit()
                     }
                     .addOnFailureListener {
@@ -147,6 +150,17 @@ class CameraFragment : Fragment() {
         matrix.postRotate(angle)
         return Bitmap.createBitmap(source, 0, 0, source.width, source.height,
                 matrix, true)
+    }
+
+    private fun checkCameraPermissionAndStartIfNeeded() {
+        if (context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                    arrayOf(Manifest.permission.CAMERA),
+                    cameraRequestCode
+            )
+            return
+        }
+        createCameraSource()
     }
 
 }
