@@ -16,7 +16,6 @@ import com.android.huytran.textrecognize.processor.*
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.text.TextRecognizer
 import com.google.firebase.ml.vision.FirebaseVision
-import com.google.firebase.ml.vision.cloud.FirebaseVisionCloudDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
 import java.io.IOException
 

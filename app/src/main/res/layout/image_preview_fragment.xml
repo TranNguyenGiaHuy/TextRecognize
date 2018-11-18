@@ -4,11 +4,11 @@
              android:layout_height="match_parent"
              android:background="@android:color/white">
 
-    <com.ecloud.pulltozoomview.PullToZoomListViewEx
-            android:id="@+id/listView"
+    <com.android.huytran.textrecognize.recyclerView.ImagePreviewRecyclerView
+            android:id="@+id/recyclerView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:dividerHeight="1dp"
-            android:scrollbars="none"/>
+            android:layout_height="match_parent">
+
+    </com.android.huytran.textrecognize.recyclerView.ImagePreviewRecyclerView>
 
 </FrameLayout>
