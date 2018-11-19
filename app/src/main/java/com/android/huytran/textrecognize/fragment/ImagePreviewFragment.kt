@@ -2,6 +2,9 @@ package com.android.huytran.textrecognize.fragment
 
 import android.annotation.SuppressLint
 import android.app.Fragment
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.support.v7.widget.GridLayoutManager
@@ -18,6 +21,8 @@ import co.dift.ui.SwipeToAction
 import com.android.huytran.textrecognize.R
 import com.android.huytran.textrecognize.adapter.ImagePreviewAdapter
 import com.android.huytran.textrecognize.recyclerView.ImagePreviewRecyclerView
+import android.content.Intent
+import android.net.Uri
 
 
 class ImagePreviewFragment : Fragment() {
@@ -55,7 +60,42 @@ class ImagePreviewFragment : Fragment() {
 
         SwipeToAction(recyclerView.pullRootView as RecyclerView, object : SwipeToAction.SwipeListener<String> {
             override fun onClick(itemData: String?) {
+                itemData?.toInt()?.let { index ->
+                    val text = textList[index]
 
+                    val phoneList = text.split(' ').filter { s -> android.util.Patterns.PHONE.matcher(s).matches() }.toList()
+                    val mailList = text.split(' ').filter { s -> android.util.Patterns.EMAIL_ADDRESS.matcher(s).matches() }.toList()
+
+                    val bottomSheetBuilder = BottomSheet.Builder(context)
+                    bottomSheetBuilder.addItem(0, "Copy \"$text\" to clipboard", R.drawable.ic_copy)
+
+                    phoneList.forEachIndexed { index, s ->
+                        bottomSheetBuilder.addItem(index + 1, "Call \"$s\"", R.drawable.ic_phone)
+                    }
+
+                    mailList.forEachIndexed { index, s ->
+                        bottomSheetBuilder.addItem(index + phoneList.size + 1, "Mail \"$s\"", R.drawable.ic_email)
+                    }
+
+                    bottomSheetBuilder.setOnItemClickListener { parent, view, position, id ->
+                        when (id.toInt()) {
+                            0 -> {
+                                (context
+                                        .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                                        .primaryClip = ClipData.newPlainText("Text Recognize", text)
+                            }
+                            in 1..(phoneList.size) -> {
+                                val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${phoneList[id.toInt() - 1]}"))
+                                startActivity(intent)
+                            }
+                            in phoneList.size..phoneList.size + mailList.size -> {
+
+                            }
+                        }
+                    }
+
+                    bottomSheetBuilder.create().show()
+                }
             }
 
             override fun swipeLeft(itemData: String?): Boolean {
