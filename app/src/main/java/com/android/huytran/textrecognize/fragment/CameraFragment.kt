@@ -7,23 +7,30 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.os.Bundle
+import android.os.Environment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import com.android.huytran.textrecognize.R
+import com.android.huytran.textrecognize.model.FileImage
+import com.android.huytran.textrecognize.model.ImageContent
 import com.android.huytran.textrecognize.processor.*
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.text.TextRecognizer
 import com.google.firebase.ml.vision.FirebaseVision
-import com.google.firebase.ml.vision.cloud.FirebaseVisionCloudDetectorOptions
 import com.google.firebase.ml.vision.common.FirebaseVisionImage
+import io.realm.Realm
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
+import java.lang.Exception
 
 
 class CameraFragment : Fragment() {
 
     private val cameraRequestCode = 100
+    private val storageRequestCode = 200
 
     private var cameraSource: CameraSource? = null
     private lateinit var cameraSourcePreview: CameraSourcePreview
@@ -50,6 +57,12 @@ class CameraFragment : Fragment() {
         val grantResult = grantResults.firstOrNull()
         if (grantResult != null && grantResult == PackageManager.PERMISSION_GRANTED) {
             if (context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                return
+            }
+            if (context.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                return
+            }
+            if (context.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 return
             }
             createCameraSource()
@@ -115,14 +128,47 @@ class CameraFragment : Fragment() {
                                 firebaseVisionText.textBlocks.map { textBlock -> textBlock.text }
                         )
 
-                        val imagePreviewFragment = ImagePreviewFragment()
-                        imagePreviewFragment.bitmap = bitmap
-                        imagePreviewFragment.textList = textList
-                        fragmentManager
-                                .beginTransaction()
-                                .replace(R.id.main_view, imagePreviewFragment)
-                                .addToBackStack(this.javaClass.simpleName)
-                                .commit()
+                        // save file to storage
+                        val folder =  File("${Environment.getExternalStorageDirectory()}${File.separator}TextRecognize${File.separator}")
+                        if (!folder.exists()) {
+                            folder.mkdirs()
+                        }
+
+                        val file = File(folder.path, "${System.currentTimeMillis()}.jpg")
+                        if (file.exists()) {
+                            file.delete()
+                        }
+                        val fileOutputStream = FileOutputStream(file)
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream)
+                        fileOutputStream.close()
+
+                        // save data to db
+                        try {
+                            val realm = Realm.getDefaultInstance()
+                            realm.beginTransaction()
+                            val fileImage = FileImage()
+                            fileImage.createdTimestamp = System.currentTimeMillis()
+                            fileImage.path = file.path
+                            realm.insertOrUpdate(fileImage)
+                            realm.commitTransaction()
+
+                            val imageContentList = textList.map {
+                                val imageContent = ImageContent()
+                                imageContent.text = it
+                                imageContent.fileImage = fileImage
+                                fileImage.imageContentList.add(imageContent)
+                                imageContent
+                            }
+                            realm.beginTransaction()
+                            realm.insertOrUpdate(imageContentList)
+                            realm.insertOrUpdate(fileImage)
+                            realm.commitTransaction()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            Realm.getDefaultInstance().close()
+                        }
+
+                        fragmentManager.popBackStack()
                     }
                     .addOnFailureListener {
                         it.printStackTrace()
@@ -155,7 +201,7 @@ class CameraFragment : Fragment() {
     private fun checkCameraPermissionAndStartIfNeeded() {
         if (context.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(
-                    arrayOf(Manifest.permission.CAMERA),
+                    arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE),
                     cameraRequestCode
             )
             return

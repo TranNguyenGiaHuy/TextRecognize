@@ -45,7 +45,7 @@ class ImagePreviewFragment : Fragment() {
         listView.setHeaderLayoutParams(localObject)
 
         listView.setAdapter(ArrayAdapter(context, R.layout.list_row, textList))
-        listView.setOnItemClickListener { parent, view, position, id ->
+        listView.setOnItemClickListener { parent, _, position, _ ->
             val text = parent.getItemAtPosition(position).toString()
             val phoneList = text.split(' ').filter { s -> android.util.Patterns.PHONE.matcher(s).matches() }.toList()
             val mailList = text.split(' ').filter { s -> android.util.Patterns.EMAIL_ADDRESS.matcher(s).matches() }.toList()
