@@ -2,18 +2,29 @@ package com.android.huytran.textrecognize.fragment
 
 import android.annotation.SuppressLint
 import android.app.Fragment
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.DisplayMetrics
+import android.content.DialogInterface
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AbsListView
 import android.widget.ArrayAdapter
 import android.widget.ImageView
+import android.widget.Toast
 import com.android.huytran.textrecognize.R
 import com.cocosw.bottomsheet.BottomSheet
 import com.ecloud.pulltozoomview.PullToZoomListViewEx
+import android.R.attr.label
+import android.content.Context
+import android.content.Context.CLIPBOARD_SERVICE
+import android.content.Intent
+import android.net.Uri
+
 
 class ImagePreviewFragment : Fragment() {
 
@@ -54,7 +65,7 @@ class ImagePreviewFragment : Fragment() {
                     .title("Choose Action...")
             var index = 0
             bottomDialogBuilder
-                    .sheet(index++, resources.getDrawable(R.drawable.ic_copy, null), "Copy $text to clipboard")
+                    .sheet(index++, resources.getDrawable(R.drawable.ic_copy, null), "Copy '$text' to clipboard")
             phoneList.forEach {
                 bottomDialogBuilder
                         .sheet(index++, resources.getDrawable(R.drawable.ic_phone, null), "Call $it")
@@ -65,7 +76,37 @@ class ImagePreviewFragment : Fragment() {
                 bottomDialogBuilder
                         .sheet(index++, resources.getDrawable(R.drawable.ic_mail, null), "Email to $it")
             }
+            bottomDialogBuilder.listener { dialog, which ->
+                if (which == 0){
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip: ClipData = ClipData.newPlainText("text", text)
+                    clipboard.primaryClip = clip
+                    Toast.makeText(context,"copy success",Toast.LENGTH_SHORT).show()
+                }
+                if (which == 1 && phoneList.isEmpty() == false){
+                    val callIntent = Intent(Intent.ACTION_DIAL)
+                    callIntent.data = Uri.parse("tel:"+phoneList[0])
+                    startActivity(callIntent)
+                }
+                if (which == 1 && mailList.isEmpty() == false){
+                    val emailIntent = Intent(Intent.ACTION_SEND)
+                    emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf(mailList[0]))
+                    emailIntent.type = "message/rfc822"
+                    startActivity(Intent.createChooser(emailIntent, "Choose an Email client :"))
+                }
+                if(which == 2){
+                    val smsIntent = Intent(Intent.ACTION_SENDTO, null)
+                    smsIntent.data = Uri.parse("smsto:"+phoneList[0])
+                    startActivity(smsIntent)
+                }
+                if(which == 3){
+                    val topUpIntent = Intent(Intent.ACTION_DIAL)
+                    topUpIntent.data = Uri.parse("tel:*100*"+phoneList[0]+"%23")
+                    startActivity(topUpIntent)
+                }
+            }
             bottomDialogBuilder.build().show()
+
         }
 
         retainInstance = true
