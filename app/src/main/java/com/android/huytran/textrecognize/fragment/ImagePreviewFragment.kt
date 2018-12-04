@@ -76,19 +76,19 @@ class ImagePreviewFragment : Fragment() {
                 bottomDialogBuilder
                         .sheet(index++, resources.getDrawable(R.drawable.ic_mail, null), "Email to $it")
             }
-            bottomDialogBuilder.listener { dialog, which ->
+            bottomDialogBuilder.listener { _, which ->
                 if (which == 0){
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val clip: ClipData = ClipData.newPlainText("text", text)
                     clipboard.primaryClip = clip
                     Toast.makeText(context,"copy success",Toast.LENGTH_SHORT).show()
                 }
-                if (which == 1 && phoneList.isEmpty() == false){
+                if (which == 1 && !phoneList.isEmpty()){
                     val callIntent = Intent(Intent.ACTION_DIAL)
                     callIntent.data = Uri.parse("tel:"+phoneList[0])
                     startActivity(callIntent)
                 }
-                if (which == 1 && mailList.isEmpty() == false){
+                if (which == 1 && !mailList.isEmpty()){
                     val emailIntent = Intent(Intent.ACTION_SEND)
                     emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf(mailList[0]))
                     emailIntent.type = "message/rfc822"
